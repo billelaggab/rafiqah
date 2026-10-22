@@ -431,7 +431,7 @@ If you find this project useful or would like to support its continuous developm
 
 <div align="center">
 
-**Made with 💜 for every mother
+**Made with 💜 for every mother**
 
 <sub>Rafiqah — Because every motherhood journey deserves a smart companion</sub>
 
