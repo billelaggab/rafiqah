@@ -1,3 +1,5 @@
+<div align="center">
+
 # 🤰 Rafiqah — Your Smart Companion for Motherhood
 
 ### Your Intelligent Guide Through Motherhood
@@ -15,6 +17,9 @@
 <br/>
 
 [🚀 Quick Start](#-quick-start) · [✨ Features](#-key-features) · [🏗️ Architecture](#-architecture) · [📖 Documentation](#-documentation) · [🗺️ Roadmap](#-roadmap)
+
+
+</div>
 
 ---
 
