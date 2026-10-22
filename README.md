@@ -417,6 +417,18 @@ For commercial licensing inquiries, please contact via email.
 
 ---
 
+## 💖 Support & Coffee
+
+If you find this project useful or would like to support its continuous development and maintenance, consider buying me a coffee! Your contribution helps keep this project open-source and privacy-focused.
+
+<div align="center">
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1A528VA4K)
+
+</div>
+
+---
+
 <div align="center">
 
 **Made with 💜 for every mother
