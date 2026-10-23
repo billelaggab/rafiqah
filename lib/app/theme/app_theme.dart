@@ -29,7 +29,43 @@ class AppTheme {
         bodySmall: AppTextStyles.bodySmall,
         labelLarge: AppTextStyles.labelLarge,
       ),
-      cardTheme: const CardThemeData(elevation: 1, margin: EdgeInsets.all(8)),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: const EdgeInsets.all(8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: AppColors.surface,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: AppTextStyles.labelLarge,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primaryLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primaryLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+      ),
     );
   }
 }

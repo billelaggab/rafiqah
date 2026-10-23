@@ -175,6 +175,7 @@ class _ModeHome extends ConsumerWidget {
       default:
         body = const PregnancyDashboardScreen();
     }
+    final currentIndex = AppMode.values.indexWhere((m) => m.id == mode.id);
     return Scaffold(
       appBar: AppBar(
         title: Text('رفيقة — ${mode.labelAr}'),
@@ -185,18 +186,21 @@ class _ModeHome extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
           ),
-          PopupMenuButton<String>(
-            onSelected: (id) {
-              final m = AppMode.fromId(id);
-              ref.read(appModeProvider.notifier).setMode(m);
-            },
-            itemBuilder: (_) => AppMode.values
-                .map((m) => PopupMenuItem(value: m.id, child: Text('${m.emoji} ${m.labelAr}')))
-                .toList(),
-          ),
         ],
       ),
       body: body,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentIndex < 0 ? 0 : currentIndex,
+        onTap: (i) {
+          ref.read(appModeProvider.notifier).setMode(AppMode.values[i]);
+        },
+        items: AppMode.values
+            .map((m) => BottomNavigationBarItem(
+                  icon: Text(m.emoji, style: const TextStyle(fontSize: 20)),
+                  label: m.labelAr,
+                ))
+            .toList(),
+      ),
     );
   }
 }

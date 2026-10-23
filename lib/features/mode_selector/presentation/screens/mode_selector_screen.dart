@@ -13,14 +13,18 @@ class ModeSelectorScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('اختاري وضعك')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: GridView.count(
           crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.95,
           children: AppMode.values.map((m) {
             return Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: InkWell(
+                borderRadius: BorderRadius.circular(20),
                 onTap: () async {
                   await ref.read(appModeProvider.notifier).setMode(m);
                   onSelected();
@@ -28,9 +32,18 @@ class ModeSelectorScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(m.emoji, style: const TextStyle(fontSize: 48)),
-                    const SizedBox(height: 8),
-                    Text(m.labelAr, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(child: Text(m.emoji, style: const TextStyle(fontSize: 36))),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(m.labelAr, textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
               ),
