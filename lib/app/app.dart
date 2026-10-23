@@ -25,6 +25,7 @@ class _RafiqahAppState extends ConsumerState<RafiqahApp> {
   bool _disclaimerAccepted = false;
   bool _onboarded = false;
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -33,24 +34,47 @@ class _RafiqahAppState extends ConsumerState<RafiqahApp> {
   }
 
   Future<void> _init() async {
-    final db = ref.read(databaseProvider);
-    final p = await db.userProfileDao.getProfile();
-    setState(() {
-      _disclaimerAccepted = p?.disclaimerAccepted ?? false;
-      _onboarded = p?.lmpDate != null;
-      _loading = false;
-    });
+    try {
+      final db = ref.read(databaseProvider);
+      final p = await db.userProfileDao.getProfile();
+      setState(() {
+        _disclaimerAccepted = p?.disclaimerAccepted ?? false;
+        _onboarded = p?.lmpDate != null;
+        _loading = false;
+      });
+    } catch (e, st) {
+      debugPrint('Init error: $e\n$st');
+      setState(() {
+        _error = '$e';
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return const MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+    if (_error != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('خطأ في البدء:\n$_error', textAlign: TextAlign.center),
+            ),
+          ),
+        ),
       );
     }
     if (!_disclaimerAccepted) {
       return MaterialApp(
+        debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -78,6 +102,7 @@ class _RafiqahAppState extends ConsumerState<RafiqahApp> {
       );
     }
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'رفيقة',
       theme: AppTheme.light(),
       localizationsDelegates: const [

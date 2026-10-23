@@ -7,7 +7,15 @@ import 'app/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
-  await NotificationService.instance.init();
+  try {
+    await MobileAds.instance.initialize();
+  } catch (e, st) {
+    debugPrint('MobileAds init failed: $e\n$st');
+  }
+  try {
+    await NotificationService.instance.init();
+  } catch (e, st) {
+    debugPrint('Notification init failed: $e\n$st');
+  }
   runApp(const ProviderScope(child: RafiqahApp()));
 }
