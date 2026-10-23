@@ -5,6 +5,7 @@ import 'package:rafiqah/core/database/database_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rafiqah/features/mode_selector/domain/app_mode.dart';
 import 'package:rafiqah/features/mode_selector/presentation/providers/app_mode_notifier.dart';
+import 'package:rafiqah/features/mode_selector/presentation/screens/mode_selector_screen.dart';
 import 'package:rafiqah/features/pregnancy/presentation/screens/pregnancy_dashboard_screen.dart';
 import 'package:rafiqah/features/postpartum/presentation/screens/postpartum_dashboard_screen.dart';
 import 'package:rafiqah/features/cycle_tracker/presentation/screens/cycle_tracker_screen.dart';
@@ -24,6 +25,7 @@ class RafiqahApp extends ConsumerStatefulWidget {
 class _RafiqahAppState extends ConsumerState<RafiqahApp> {
   bool _disclaimerAccepted = false;
   bool _onboarded = false;
+  bool _modeChosen = false;
   bool _loading = true;
   String? _error;
 
@@ -40,6 +42,7 @@ class _RafiqahAppState extends ConsumerState<RafiqahApp> {
       setState(() {
         _disclaimerAccepted = p?.disclaimerAccepted ?? false;
         _onboarded = p?.lmpDate != null;
+        _modeChosen = (p?.currentMode.isNotEmpty ?? false);
         _loading = false;
       });
     } catch (e, st) {
@@ -98,6 +101,21 @@ class _RafiqahAppState extends ConsumerState<RafiqahApp> {
         supportedLocales: const [Locale('ar'), Locale('en')],
         home: OnboardingScreen(onDone: () {
           setState(() => _onboarded = true);
+        }),
+      );
+    }
+    if (!_modeChosen) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        home: ModeSelectorScreen(onSelected: () {
+          setState(() => _modeChosen = true);
         }),
       );
     }

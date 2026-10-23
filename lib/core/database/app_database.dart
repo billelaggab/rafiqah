@@ -50,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
         onCreate: (Migrator m) async {
           await m.createAll();
           await into(userProfiles).insert(
-            UserProfilesCompanion.insert(currentMode: 'pregnancy'),
+            UserProfilesCompanion.insert(currentMode: ''),
           );
           // Seed food directory
           try {
