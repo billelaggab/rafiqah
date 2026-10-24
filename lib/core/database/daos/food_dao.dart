@@ -6,8 +6,14 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   FoodDao(super.db);
 
   Future<List<FoodDirectoryData>> search(String query) {
+    final escaped = query
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
     final q = select(foodDirectory)
-      ..where((t) => t.nameArabic.like('%$query%'))
+      ..where(
+        (t) => t.nameArabic.like('%$escaped%', escapeChar: r'\'),
+      )
       ..orderBy([(t) => OrderingTerm.asc(t.nameArabic)]);
     return q.get();
   }
@@ -17,6 +23,10 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
 
   Future<List<FoodDirectoryData>> getAll() =>
       (select(foodDirectory)..orderBy([(t) => OrderingTerm.asc(t.nameArabic)])).get();
+
+  Stream<List<FoodDirectoryData>> watchAll() => (select(foodDirectory)
+        ..orderBy([(t) => OrderingTerm.asc(t.nameArabic)]))
+      .watch();
 
   Future<int> count() async {
     final c = countAll();

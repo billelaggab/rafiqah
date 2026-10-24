@@ -5,12 +5,21 @@ class AppConstants {
   static const String appName = 'رفيقة';
   static const String appNameEn = 'Rafiqah';
 
-  // AdMob test IDs
+  /// يُمرَّر عبر `--dart-define=PRIVACY_POLICY_URL=...` عند النشر.
+  static const String privacyPolicyUrl = String.fromEnvironment(
+    'PRIVACY_POLICY_URL',
+    defaultValue: 'https://rafiqah.app/privacy',
+  );
+
+  // AdMob — القيم التجريبية تُستخدم في وضع التطوير فقط.
   static const String admobBannerTest = 'ca-app-pub-3940256099942544/6300978111';
-  static const String admobInterstitialTest = 'ca-app-pub-3940256099942544/1033173712';
+  static const String admobBannerProd = String.fromEnvironment(
+    'ADMOB_BANNER_ID',
+    defaultValue: admobBannerTest,
+  );
 
   // Backup
-  static const String backupFileName = 'rafiqah_secure_backup.enc';
+  // اسم ملف النسخة الاحتياطية معرّف في BackupService.
 
   // Modes
   static const String modeCycle = 'cycle';

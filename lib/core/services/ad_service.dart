@@ -1,42 +1,52 @@
 // lib/core/services/ad_service.dart
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'ad_cooldown_manager.dart';
+
+import '../utils/constants.dart';
 
 class AdService {
   AdService._();
   static final AdService instance = AdService._();
 
-  static const _bannerId = 'ca-app-pub-3940256099942544/6300978111';
-  static const _interstitialId = 'ca-app-pub-3940256099942544/1033173712';
+  final Completer<void> _ready = Completer<void>();
+  bool _adsAllowed = false;
 
-  BannerAd createBanner({required void Function(Ad) onLoaded}) {
+  /// يكتمل بعد انتهاء تدفق الموافقة (سواء سُمح بالإعلانات أم لا).
+  ///
+  /// لا نُهيّئ الإعلانات قبل موافقة UMP، ولا نُعطّل تشغيل التطبيق بانتظارها.
+  Future<void> get ready => _ready.future;
+
+  bool get adsAllowed => _adsAllowed;
+
+  /// تُستدعى مرة واحدة من `main` بعد انتهاء تدفق الموافقة.
+  void markConsentHandled({required bool allowed}) {
+    _adsAllowed = allowed;
+    if (!_ready.isCompleted) _ready.complete();
+  }
+
+  String get _bannerId => kDebugMode
+      ? AppConstants.admobBannerTest
+      : AppConstants.admobBannerProd;
+
+  BannerAd? createBanner({
+    required void Function(Ad) onLoaded,
+    void Function(LoadAdError)? onFailed,
+  }) {
+    if (!_adsAllowed) return null;
     return BannerAd(
       adUnitId: _bannerId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: onLoaded,
-        onAdFailedToLoad: (ad, err) {
-          debugPrint('Banner failed: $err');
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('Banner failed: $error');
           ad.dispose();
+          onFailed?.call(error);
         },
       ),
     )..load();
-  }
-
-  Future<void> showInterstitialIfAllowed() async {
-    if (!AdCooldownManager.instance.canShowInterstitial) return;
-    await InterstitialAd.load(
-      adUnitId: _interstitialId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          ad.show();
-          AdCooldownManager.instance.recordInterstitialShown();
-        },
-        onAdFailedToLoad: (err) => debugPrint('Interstitial failed: $err'),
-      ),
-    );
   }
 }

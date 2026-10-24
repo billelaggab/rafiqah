@@ -9,18 +9,25 @@ class AppTheme {
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: AppTextStyles.fontFamily,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.light,
+      ).copyWith(
+        primary: AppColors.primary,
+        secondary: AppColors.secondary,
+        error: AppColors.error,
+        surface: AppColors.surface,
       ),
       scaffoldBackgroundColor: AppColors.background,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.primary,
         elevation: 0,
-        titleTextStyle: AppTextStyles.titleLarge.copyWith(color: AppColors.primary),
+        titleTextStyle:
+            AppTextStyles.titleLarge.copyWith(color: AppColors.primary),
       ),
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         displayLarge: AppTextStyles.displayLarge,
         titleLarge: AppTextStyles.titleLarge,
         titleMedium: AppTextStyles.titleMedium,
@@ -62,7 +69,7 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: Color(0xFF5B5566),
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
       ),

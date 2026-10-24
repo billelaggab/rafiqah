@@ -1,6 +1,9 @@
 // lib/core/services/banner_ad_widget.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import 'ad_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
@@ -17,9 +20,28 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
-    _ad = AdService.instance.createBanner(onLoaded: (_) {
-      if (mounted) setState(() => _loaded = true);
-    });
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    // ننتظر انتهاء موافقة UMP وتهيئة SDK قبل تحميل أي إعلان.
+    await AdService.instance.ready;
+    if (!mounted || !AdService.instance.adsAllowed) return;
+    final ad = AdService.instance.createBanner(
+      onLoaded: (_) {
+        if (mounted) setState(() => _loaded = true);
+      },
+      onFailed: (_) {
+        if (mounted) {
+          setState(() {
+            _ad = null;
+            _loaded = false;
+          });
+        }
+      },
+    );
+    if (ad == null || !mounted) return;
+    setState(() => _ad = ad);
   }
 
   @override
@@ -31,10 +53,13 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   Widget build(BuildContext context) {
     if (!_loaded || _ad == null) return const SizedBox.shrink();
-    return SizedBox(
-      width: _ad!.size.width.toDouble(),
-      height: _ad!.size.height.toDouble(),
-      child: AdWidget(ad: _ad!),
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        width: _ad!.size.width.toDouble(),
+        height: _ad!.size.height.toDouble(),
+        child: AdWidget(ad: _ad!),
+      ),
     );
   }
 }

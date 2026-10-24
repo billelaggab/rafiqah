@@ -1,5 +1,6 @@
 // lib/core/services/backup_service.dart
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:google_sign_in/google_sign_in.dart';
@@ -8,8 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../database/app_database.dart';
 import '../security/aes_encryption.dart';
-import '../security/key_manager.dart';
 
 class GoogleAuthClient extends http.BaseClient {
   GoogleAuthClient(this._headers);
@@ -21,30 +22,48 @@ class GoogleAuthClient extends http.BaseClient {
     request.headers.addAll(_headers);
     return _client.send(request);
   }
+
+  @override
+  void close() {
+    _client.close();
+    super.close();
+  }
 }
 
 class BackupService {
   BackupService._();
   static final BackupService instance = BackupService._();
 
+  static const String _fileName = 'rafiqah_secure_backup.enc';
+
+  /// يُمرَّر عبر `--dart-define=GOOGLE_WEB_CLIENT_ID=...`.
+  static const String _webClientId =
+      String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   GoogleSignInAccount? _currentUser;
-
   bool _initialized = false;
+
   Future<void> _ensureInit() async {
     if (_initialized) return;
-    await _googleSignIn.initialize();
-    _initialized = true;
+    try {
+      await _googleSignIn.initialize(
+        serverClientId: _webClientId.isEmpty ? null : _webClientId,
+      );
+      _initialized = true;
+    } on GoogleSignInException catch (e) {
+      throw StateError(
+        'تعذر تهيئة Google Sign-In (${e.code.name}). '
+        'تأكدي من إعداد معرّف عميل الويب وبصمة SHA-1.',
+      );
+    }
   }
 
+  /// يعيد `null` إذا ألغت المستخدمة العملية.
   Future<GoogleSignInAccount?> signIn() async {
     await _ensureInit();
-    try {
-      _currentUser = await _googleSignIn.authenticate();
-      return _currentUser;
-    } catch (_) {
-      return null;
-    }
+    _currentUser = await _googleSignIn.authenticate();
+    return _currentUser;
   }
 
   Future<void> signOut() async {
@@ -55,86 +74,119 @@ class BackupService {
 
   GoogleSignInAccount? get currentUser => _currentUser;
 
-  Future<File> getDatabaseFile() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File(p.join(dir.path, 'rafiqah.sqlite'));
-  }
-
-  Future<drive.DriveApi?> _driveApi() async {
+  /// ينفّذ عملية Drive ويغلق عميل HTTP دائمًا.
+  Future<T> _withDrive<T>(
+    Future<T> Function(drive.DriveApi api) action,
+  ) async {
     await _ensureInit();
-    var account = _currentUser;
-    account ??= await signIn();
-    if (account == null) return null;
+    final account = _currentUser ?? await signIn();
+    if (account == null) {
+      throw StateError('لم يتم تسجيل الدخول إلى Google');
+    }
     final headers = await account.authorizationClient.authorizationHeaders(
       [drive.DriveApi.driveAppdataScope],
     );
-    if (headers == null) return null;
+    if (headers == null) {
+      throw StateError('لم يتم منح صلاحية النسخ الاحتياطي على Google Drive');
+    }
     final client = GoogleAuthClient(headers);
-    return drive.DriveApi(client);
+    try {
+      return await action(drive.DriveApi(client));
+    } finally {
+      client.close();
+    }
   }
 
-  Future<void> backup() async {
-    final api = await _driveApi();
-    if (api == null) throw StateError('Not signed in');
-    final file = await getDatabaseFile();
-    final bytes = await file.readAsBytes();
-    final key = await KeyManager.getOrCreateKey();
-    final encrypted = AesEncryption.encryptWithIv(bytes, key);
-
+  Future<drive.File?> _findBackup(drive.DriveApi api) async {
     final list = await api.files.list(
       spaces: 'appDataFolder',
-      q: "name = 'rafiqah_secure_backup.enc'",
+      q: "name = '$_fileName'",
     );
-    if (list.files != null && list.files!.isNotEmpty) {
-      final id = list.files!.first.id!;
-      await api.files.delete(id);
-    }
-
-    final driveFile = drive.File()
-      ..name = 'rafiqah_secure_backup.enc'
-      ..parents = ['appDataFolder'];
-    await api.files.create(
-      driveFile,
-      uploadMedia: drive.Media(Stream.value(encrypted), encrypted.length),
-    );
+    final files = list.files;
+    if (files == null || files.isEmpty) return null;
+    return files.first;
   }
 
-  Future<void> restore() async {
-    final api = await _driveApi();
-    if (api == null) throw StateError('Not signed in');
-    final list = await api.files.list(
-      spaces: 'appDataFolder',
-      q: "name = 'rafiqah_secure_backup.enc'",
+  /// ينشئ نسخة متسقة من القاعدة، يشفّرها، ثم يرفعها إلى `drive.appdata`.
+  ///
+  /// لا يحذف النسخة القديمة قبل نجاح الرفع.
+  Future<void> backup(AppDatabase db, String passphrase) async {
+    final dir = await getTemporaryDirectory();
+    final snapshot = File(
+      p.join(dir.path, 'rafiqah_${DateTime.now().microsecondsSinceEpoch}.sqlite'),
     );
-    if (list.files == null || list.files!.isEmpty) {
-      throw StateError('No backup found');
-    }
-    final id = list.files!.first.id!;
-    final media = await api.files.get(id, downloadOptions: drive.DownloadOptions.fullMedia)
-        as drive.Media;
-    final chunks = <int>[];
-    await for (final c in media.stream) {
-      chunks.addAll(c);
-    }
-    final encrypted = Uint8List.fromList(chunks);
-    final key = await KeyManager.getKey();
-    if (key == null) throw StateError('No key available');
-    final bytes = AesEncryption.decryptWithIv(encrypted, key);
-    final file = await getDatabaseFile();
-    await file.writeAsBytes(bytes, flush: true);
-  }
+    try {
+      await db.vacuumInto(snapshot.path);
+      final bytes = await snapshot.readAsBytes();
+      // PBKDF2 ثقيل؛ ننفذه في isolate حتى لا تتجمد الواجهة.
+      final encrypted = await Isolate.run(
+        () => AesEncryption.encrypt(bytes, passphrase),
+      );
 
-  Future<void> deleteRemoteBackup() async {
-    final api = await _driveApi();
-    if (api == null) return;
-    final list = await api.files.list(
-      spaces: 'appDataFolder',
-      q: "name = 'rafiqah_secure_backup.enc'",
-    );
-    if (list.files != null) {
-      for (final f in list.files!) {
-        if (f.id != null) await api.files.delete(f.id!);
+      await _withDrive((api) async {
+        final existing = await _findBackup(api);
+        final media = drive.Media(
+          Stream.value(encrypted),
+          encrypted.length,
+          contentType: 'application/octet-stream',
+        );
+
+        if (existing?.id != null) {
+          await api.files.update(
+            drive.File()..name = _fileName,
+            existing!.id!,
+            uploadMedia: media,
+          );
+        } else {
+          await api.files.create(
+            drive.File()
+              ..name = _fileName
+              ..parents = ['appDataFolder'],
+            uploadMedia: media,
+          );
+        }
+      });
+    } finally {
+      if (await snapshot.exists()) {
+        await snapshot.delete();
       }
     }
   }
+
+  /// ينزّل النسخة، يفك تشفيرها، ويستعيدها داخل القاعدة الحالية.
+  Future<void> restore(AppDatabase db, String passphrase) async {
+    final bytes = await _withDrive((api) async {
+      final file = await _findBackup(api);
+      if (file?.id == null) {
+        throw StateError('لا توجد نسخة احتياطية على Google Drive');
+      }
+
+      final media = await api.files.get(
+        file!.id!,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
+
+      final chunks = <int>[];
+      await for (final chunk in media.stream) {
+        chunks.addAll(chunk);
+      }
+      final encrypted = Uint8List.fromList(chunks);
+      return Isolate.run(
+        () => AesEncryption.decrypt(encrypted, passphrase),
+      );
+    });
+    await db.restoreFromBackup(bytes);
+  }
+
+  Future<void> deleteRemoteBackup() => _withDrive((api) async {
+        final list = await api.files.list(
+          spaces: 'appDataFolder',
+          q: "name = '$_fileName'",
+        );
+        final files = list.files;
+        if (files == null) return;
+        for (final f in files) {
+          if (f.id != null) await api.files.delete(f.id!);
+        }
+      });
 }
