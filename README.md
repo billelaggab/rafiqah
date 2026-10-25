@@ -69,17 +69,17 @@ Interfaces with soothing colors, full Arabic language and **RTL** support, and a
 The app automatically adapts to the user's physiological stage through a **smart state engine** that smoothly transitions the interface and features:
 
 ```
-                    ┌────────────────────────────┐
-                    │    🔄 Smart Mode Switcher    │
-                    │      AppModeNotifier        │
-                    └───────────────────────────┘
-
-       ┌──────────────┬─────────────────────────┐
-       ▼              ▼                      ▼
-  ┌───────────┐  ┌───────────┐        ┌───────────┐  ┌───────────┐
-  │  🩸 Menstrual│  │ 🌡️ Planning│        │ 🤰 Pregnancy│  │ 👶 Postpartum│
-  │  Cycle     │  │  for Baby │        │           │  │  Care     │
-  └───────────┘  └───────────┘        └───────────┘  └───────────┘
+                   ┌──────────────────────────────┐
+                   │     Smart Mode Switcher      │
+                   │       AppModeNotifier        │
+                   └──────────────┬───────────────┘
+                                  │
+       ┌─────────────────┬────────┴────────┬─────────────────┐
+       ▼                 ▼                 ▼                 ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│   Menstrual  │  │   Planning   │  │   Pregnancy  │  │  Postpartum  │
+│    Cycle     │  │   for Baby   │  │     Care     │  │     Care     │
+└──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
 <details>
